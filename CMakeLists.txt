@@ -54,7 +54,6 @@ endif()
 
 
 
-add_executable(test_s test_s.cpp)
 
 ## libOTe
 ###########################################################################
@@ -77,22 +76,17 @@ endif ()
 message(STATUS "libOTe_LIB:  ${libOTe_LIB} ${cryptoTools_LIB}")
 message(STATUS "libOTe_inc: ${libOTe_INCLUDE_DIR} ${cryptoTools_INCLUDE_DIR}\n")
 
-target_link_libraries(test_s ${libOTe_LIB} ${cryptoTools_LIB})
-
 ## Relic
 ###########################################################################
 
-  find_package(Relic REQUIRED)
+find_package(Relic REQUIRED)
 
-  if (NOT Relic_FOUND)
-    message(FATAL_ERROR "Failed to find Relic")
-  endif (NOT Relic_FOUND)
+if (NOT Relic_FOUND)
+message(FATAL_ERROR "Failed to find Relic")
+endif (NOT Relic_FOUND)
 
-  message(STATUS "Relic_LIB:  ${RELIC_LIBRARIES} ${RLC_LIBRARY}")
-  message(STATUS "Relic_inc:  ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}\n")
-
-  target_include_directories(test_s PUBLIC ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}) 
-  target_link_libraries(test_s ${RELIC_LIBRARIES} ${RLC_LIBRARY})
+message(STATUS "Relic_LIB:  ${RELIC_LIBRARIES} ${RLC_LIBRARY}")
+message(STATUS "Relic_inc:  ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}\n")
 
 
 
@@ -124,9 +118,6 @@ if(NOT Boost_FOUND)
 	message(FATAL_ERROR "Failed to find boost 1.69.0 or newer. Looked at system dirs and: " ${BOOST_ROOT})
 endif()
 
-target_include_directories(test_s PUBLIC ${Boost_INCLUDE_DIR}) 
-target_link_libraries(test_s ${Boost_LIBRARIES})
-
 message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
 message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
 
@@ -146,9 +137,12 @@ find_library(GMPXX_LIBRARIES NAMES gmpxx libgmpxx)
 message(STATUS "GMP_LIB: ${GMPXX_LIBRARIES} ${GMP_LIBRARIES}" )
 message(STATUS "GMP_INC: ${GMP_INCLUDE_DIR}\n\n" )
 
-target_link_libraries(test_s  gmp gmpxx)
-
 ## OpenSSL
 ###########################################################################
 find_package(OpenSSL REQUIRED)
-target_link_libraries(test_s ${OPENSSL_LIBRARIES} )
+
+add_executable(test_s test_s.cpp)
+
+target_include_directories(test_s PUBLIC ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR} ${Boost_INCLUDE_DIR}) 
+
+target_link_libraries(test_s ${libOTe_LIB} ${cryptoTools_LIB} ${RELIC_LIBRARIES} ${RLC_LIBRARY}  gmp gmpxx ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
