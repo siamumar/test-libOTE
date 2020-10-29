@@ -52,21 +52,88 @@ if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
 	endif()
 endif()
 
-# Support out-of-source builds.
-include_directories(${CMAKE_BINARY_DIR})
 
-#find packages
 
-find_path(RELIC_INCLUDE_DIR relic/relic.h)
-find_library(RELIC_LIBRARY NAMES relic)
-include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args(RELIC DEFAULT_MSG RELIC_INCLUDE_DIR RELIC_LIBRARY)
-if(RELIC_FOUND)
-	set(RELIC_LIBRARIES ${RELIC_LIBRARY})
-	set(RELIC_INCLUDE_DIRS ${RELIC_INCLUDE_DIR})
+add_executable(test_s test_s.cpp)
+
+## libOTe
+###########################################################################
+
+
+find_path(libOTe_INCLUDE_DIR NAMES libOTe/config.h )
+find_library(libOTe_LIB NAMES libOTe)
+
+find_path(cryptoTools_INCLUDE_DIR NAMES cryptoTools/Common/config.h )
+find_library(cryptoTools_LIB NAMES cryptoTools)
+	
+
+if (NOT EXISTS ${libOTe_LIB})
+	message(FATAL_ERROR "Failed to find libOTe: ${libOTe_LIB}")
+endif ()
+if (NOT EXISTS ${libOTe_INCLUDE_DIR})
+	message(FATAL_ERROR "Failed to find libOTe include: ${libOTe_INCLUDE_DIR}")
+endif ()
+
+message(STATUS "libOTe_LIB:  ${libOTe_LIB} ${cryptoTools_LIB}")
+message(STATUS "libOTe_inc: ${libOTe_INCLUDE_DIR} ${cryptoTools_INCLUDE_DIR}\n")
+
+target_link_libraries(test_s ${libOTe_LIB} ${cryptoTools_LIB})
+
+## Relic
+###########################################################################
+
+  find_package(Relic REQUIRED)
+
+  if (NOT Relic_FOUND)
+    message(FATAL_ERROR "Failed to find Relic")
+  endif (NOT Relic_FOUND)
+
+  message(STATUS "Relic_LIB:  ${RELIC_LIBRARIES} ${RLC_LIBRARY}")
+  message(STATUS "Relic_inc:  ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}\n")
+
+  target_include_directories(test_s PUBLIC ${RELIC_INCLUDE_DIR} ${RLC_INCLUDE_DIR}) 
+  target_link_libraries(test_s ${RELIC_LIBRARIES} ${RLC_LIBRARY})
+
+
+
+## Boost
+###########################################################################
+
+set(BOOST_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/linux/boost/")
+
+if(EXISTS ${BOOST_ROOT})
+	set(Boost_NO_SYSTEM_PATHS ON)
 endif()
 
-if (GMP_INCLUDE_DIR AND GMP_LIBRARIES)
+set(Boost_USE_STATIC_LIBS        ON) # only find static libs
+set(Boost_USE_MULTITHREADED      ON)
+set(Boost_USE_STATIC_RUNTIME     ON)
+
+macro(findBoost)
+	find_package(Boost 1.69.0 COMPONENTS system thread)
+endmacro()
+
+findBoost()
+# then look at system dirs
+if(NOT Boost_FOUND)
+	set(Boost_NO_SYSTEM_PATHS  OFF)
+	findBoost()
+endif()
+
+if(NOT Boost_FOUND)
+	message(FATAL_ERROR "Failed to find boost 1.69.0 or newer. Looked at system dirs and: " ${BOOST_ROOT})
+endif()
+
+target_include_directories(test_s PUBLIC ${Boost_INCLUDE_DIR}) 
+target_link_libraries(test_s ${Boost_LIBRARIES})
+
+message(STATUS "Boost_LIB: ${Boost_LIBRARIES}" )
+message(STATUS "Boost_INC: ${Boost_INCLUDE_DIR}\n\n" )
+
+## GMP
+###########################################################################
+
+if (GMP_INCLUDE_DIR AND GMP_LIBRARIES)#
 		set(GMP_FIND_QUIETLY TRUE)
 endif (GMP_INCLUDE_DIR AND GMP_LIBRARIES)
 mark_as_advanced(GMP_INCLUDE_DIR GMP_LIBRARIES)
@@ -74,15 +141,14 @@ mark_as_advanced(GMP_INCLUDE_DIR GMP_LIBRARIES)
 find_path(GMP_INCLUDE_DIR NAMES gmp.h )
 find_library(GMP_LIBRARIES NAMES gmp libgmp )
 find_library(GMPXX_LIBRARIES NAMES gmpxx libgmpxx)
+#find_package(GMP REQUIRED)
 
+message(STATUS "GMP_LIB: ${GMPXX_LIBRARIES} ${GMP_LIBRARIES}" )
+message(STATUS "GMP_INC: ${GMP_INCLUDE_DIR}\n\n" )
+
+target_link_libraries(test_s  gmp gmpxx)
+
+## OpenSSL
+###########################################################################
 find_package(OpenSSL REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system date_time thread chrono)
-
-include_directories(${CMAKE_SOURCE_DIR} ${OPENSSL_INCLUDE_DIR} ${Boost_INCLUDE_DIRS} ${GMP_INCLUDE_DIR} ${RELIC_INCLUDE_DIR})
-
-add_executable(test_s test_s.cpp)
-
-message(STATUS "LIBS:" ${OPENSSL_LIBRARIES} " | " ${Boost_LIBRARIES} " | " ${GMP_LIBRARIES} " | " ${GMPXX_LIBRARIES} " | " ${RELIC_LIBRARY})
-                                             
-target_link_libraries(test_s ${OPENSSL_LIBRARIES} ${Boost_LIBRARIES} ${GMP_LIBRARIES} ${GMPXX_LIBRARIES} ${RELIC_LIBRARY} libOTe cryptoTools KyberOT)
-
+target_link_libraries(test_s ${OPENSSL_LIBRARIES} )
